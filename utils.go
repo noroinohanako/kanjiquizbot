@@ -66,7 +66,7 @@ func loadFiles() {
 	loadWordFrequency()
 
 	// Load font file
-	loadFont()
+	// loadFont()
 
 	// Load English dictionary for Scramble
 	loadScrambleDictionary()

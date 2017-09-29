@@ -9,33 +9,61 @@ import (
 	"log"
 	"math"
 	"strings"
-
-	"github.com/golang/freetype/truetype"
+    "math/rand"
+    "regexp"
+    "fmt"
+    
+    "github.com/anthonynsimon/bild/transform"
+    "github.com/anthonynsimon/bild/effect"
+    "github.com/anthonynsimon/bild/blur"
+    "github.com/anthonynsimon/bild/blend"
+    "github.com/anthonynsimon/bild/noise"
+    "github.com/golang/freetype/truetype"
 	"golang.org/x/image/font"
 	"golang.org/x/image/math/fixed"
 )
 
 var (
 	fontDpi     = 72.0         // font DPI setting
-	fontFile    = "meiryo.ttc" // TTF font filename
 	fontHinting = "full"       // none | full
 	fontSize    = 72.0         // font size in points
-	fontTtf     *truetype.Font
 )
 
 // Load Font from disk
-func loadFont() {
+func loadFont(filename string) *truetype.Font {
+    // Read the font data
+    fontBytes, err := ioutil.ReadFile(RESOURCES_FOLDER + filename)
+    if err != nil {
+        log.Fatalln("ERROR, Loading font:", err)
+    }
 
-	// Read the font data
-	fontBytes, err := ioutil.ReadFile(RESOURCES_FOLDER + fontFile)
-	if err != nil {
-		log.Fatalln("ERROR, Loading font:", err)
-	}
+    fontTtf, err := truetype.Parse(fontBytes)
+    if err != nil {
+        log.Fatalln("ERROR, Parsing font: %s FileName: %s", err, filename)
+    }
+    return fontTtf
+}
 
-	fontTtf, err = truetype.Parse(fontBytes)
-	if err != nil {
-		log.Fatalln("ERROR, Parsing font:", err)
-	}
+func isValidFontFileName(filename string) bool {
+    filenamelower := strings.ToLower(filename)  
+    matched, _ := regexp.MatchString(".*.tt[fc]",filenamelower) 
+    return matched
+}
+
+func loadRandomFont() *truetype.Font {
+    files, err := ioutil.ReadDir(RESOURCES_FOLDER) 
+    if err != nil {
+        log.Fatalln("ERROR, Reading Directory:", err)
+    }
+    fontfiles := []string{}
+    for _,file := range files {
+        if isValidFontFileName(file.Name()){
+            fontfiles = append(fontfiles, file.Name())
+        }
+    }
+
+    n := rand.Int() % len(fontfiles)
+    return loadFont(fontfiles[n])
 }
 
 // Generate a PNG image reader with given string written
@@ -59,7 +87,7 @@ func GenerateImage(input string) *bytes.Buffer {
 	// Set up font drawer
 	d := &font.Drawer{
 		Src: fg,
-		Face: truetype.NewFace(fontTtf, &truetype.Options{
+		Face: truetype.NewFace(loadRandomFont(), &truetype.Options{
 			Size:    fontSize,
 			DPI:     fontDpi,
 			Hinting: h,
@@ -106,6 +134,75 @@ func GenerateImage(input string) *bytes.Buffer {
 		// Advance line position
 		y += lineHeight
 	}
+   
+    //debug string
+    debugParams := "Effects debug: "
+
+    // Add transform noise
+    rgba = transform.Rotate(rgba, 10 * (0.5 - rand.Float64()), nil)
+    rgba = transform.ShearV(rgba, 4 * (0.5 - rand.Float64())) 
+    rgba = transform.ShearH(rgba, 4 * (0.5 - rand.Float64()))
+
+    // Create noise
+    width := rgba.Bounds().Size().X
+    height := rgba.Bounds().Size().Y
+    isMonochrome := (rand.Int() % 2) == 0
+    noisefn := noise.Gaussian
+    switch (rand.Int() % 3) {
+    case 0:
+        noisefn = noise.Binary
+        debugParams = debugParams + " Binary Noise"
+    case 1:
+        noisefn = noise.Uniform
+        debugParams = debugParams + " Uniform Noise"
+    default: 
+        debugParams = debugParams + " Gaussian Noise"
+    }
+    noise := noise.Generate(width, height, &noise.Options{NoiseFn: noisefn, Monochrome: isMonochrome})
+
+    // Blend noise
+    switch (rand.Int() % 6) {
+    case 0:
+        rgba = blend.Opacity(rgba, noise, 0.5)
+        debugParams = debugParams + " Opacity Blend"
+    case 1:
+        rgba = blend.Lighten(rgba, noise)
+        debugParams = debugParams + " Lighten Blend"
+    case 2:
+        rgba = blend.Subtract(rgba, noise)
+        debugParams = debugParams + " Subtraction Blend"
+    case 3:
+        rgba = blend.SoftLight(rgba, noise)
+        debugParams = debugParams + " SoftLight Blend"
+    case 4:
+        rgba = blend.ColorBurn(rgba, noise)
+        debugParams = debugParams + " ColorBurn Blend"
+    case 5:
+        rgba = blend.Overlay(rgba, noise)
+        debugParams = debugParams + " Overlay Blend"
+    default:
+        rgba = blend.Exclusion(rgba, noise)
+        debugParams = debugParams + " Exclusion Blend"
+    }
+
+    //Add effect
+    switch (rand.Int() % 4) {
+    case 0:
+        rgba = blur.Gaussian(rgba, 2.0)
+        debugParams = debugParams + " Gaussian Blur Effect"
+    case 1:
+        rgba = effect.Emboss(rgba)
+        debugParams = debugParams + " Emboss Effect"
+    case 2:
+        rgba = blur.Box(rgba, 1.8)
+        debugParams = debugParams + " Box Blur Effect"
+    default:
+        rgba = effect.Sobel(rgba)
+        debugParams = debugParams + " Sobel Effect"
+    }
+
+    //Debug String Print
+    fmt.Println(debugParams)
 
 	// Encode PNG image
 	var buf bytes.Buffer
