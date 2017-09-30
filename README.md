@@ -16,7 +16,7 @@ Use this URL to invite your bot to a server:
 https://discordapp.com/oauth2/authorize?scope=bot&client_id=BOT_CLIENT_ID_GOES_HERE  
 after creating an app with the [Discord API](https://discordapp.com/developers/docs/intro).
 
-Uses the [DiscordGo](https://github.com/bwmarrin/discordgo) project for API bindings and whatnot, [Golang Freetype](https://github.com/golang/freetype) to draw fonts on an image. and [bild](https://github.com/anthonynsimon/bild) for image processing algorithms.
+Uses the [DiscordGo](https://github.com/bwmarrin/discordgo) project for API bindings and whatnot, [Golang Freetype](https://github.com/golang/freetype) to draw fonts on an image, and [bild](https://github.com/anthonynsimon/bild) for image processing algorithms.
 
 # Command List
 
@@ -28,7 +28,7 @@ Uses the [DiscordGo](https://github.com/bwmarrin/discordgo) project for API bind
 `kq!mad/fast/quiz/mild/slow <deck>` - for 0/1/2/3/5 second answer windows instead.  
 `kq!gauntlet <deck>` - runs a kanji time trial in Direct Message.  
 `kq!scramble [easy/normal/hard/insane]` - runs an English Word Scramble quiz with varying word length limits.
-Append 'effect' at the end of quiz commands for goofy image effects.
+Append `effect` at the end of quiz commands for goofy image effects.
 
 *Utilities*  
 `kq!k <kanji>` - displays kanji information.  
