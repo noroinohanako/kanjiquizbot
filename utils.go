@@ -131,9 +131,9 @@ func msgSend(s *discordgo.Session, cid string, msg string) {
 }
 
 // Send an image message to Discord
-func imgSend(s *discordgo.Session, cid string, word string) {
+func imgSend(s *discordgo.Session, cid string, word string, effect bool) {
 
-	image := GenerateImage(word)
+	image := GenerateImage(word, effect)
 
 	// Try thrice in case of timeouts
 	retryErr := retryOnServerError(func() error {

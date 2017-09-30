@@ -202,7 +202,11 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			}
 		case "draw":
 			if len(input) >= 2 {
-				imgSend(s, m.ChannelID, strings.Replace(m.Content[len(input[0])+1:], "\\n", "\n", -1))
+				imgSend(s, m.ChannelID, strings.Replace(m.Content[len(input[0])+1:], "\\n", "\n", -1), false)
+			}
+		case "draweffect":
+			if len(input) >= 2 {
+				imgSend(s, m.ChannelID, strings.Replace(m.Content[len(input[0])+1:], "\\n", "\n", -1), true)
 			}
 		case "output":
 			// Sets Gauntlet score output channel
@@ -229,9 +233,16 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 				break
 			}
 			if len(input) == 2 {
-				go runQuiz(s, m.ChannelID, input[1], "", Settings.Speed[command])
+				go runQuiz(s, m.ChannelID, input[1], "", Settings.Speed[command],false)
 			} else if len(input) == 3 {
-				go runQuiz(s, m.ChannelID, input[1], input[2], Settings.Speed[command])
+                if input[2] == "effect" {
+                    go runQuiz(s, m.ChannelID, input[1], "", Settings.Speed[command],true)
+                } else {
+                    go runQuiz(s, m.ChannelID, input[1], input[2], Settings.Speed[command],false)
+                }
+			} else if len(input) == 4 {
+                effectsMode := input[3] == "effect"
+				go runQuiz(s, m.ChannelID, input[1], input[2], Settings.Speed[command],effectsMode)
 			} else {
 				// Show if no quiz specified
 				showList(s, m)
@@ -241,9 +252,16 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 				break
 			}
 			if len(input) == 1 {
-				go runScramble(s, m.ChannelID, "")
+				go runScramble(s, m.ChannelID, "", false)
 			} else if len(input) == 2 {
-				go runScramble(s, m.ChannelID, input[1])
+				if input[1] == "effect" {
+					go runScramble(s, m.ChannelID, "", true)
+				} else {
+					go runScramble(s, m.ChannelID, input[1], false)
+				}
+			} else if len(input) == 3 {
+				effectsMode := input[2] == "effect"
+				go runScramble(s, m.ChannelID, input[1], effectsMode)
 			} else {
 				// Show if no quiz specified
 				showList(s, m)
@@ -253,7 +271,10 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 				break
 			}
 			if len(input) == 2 {
-				go runGauntlet(s, m, input[1])
+				go runGauntlet(s, m, input[1], false)
+			} else if len(input) == 3 {
+				effectsMode := input[2] == "effect"
+				go runGauntlet(s, m, input[1], effectsMode)
 			} else {
 				// Show if no quiz specified
 				showHelp(s, m)
@@ -307,7 +328,7 @@ func showHelp(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	fields = append(fields, &discordgo.MessageEmbedField{
 		Name:   "Alternative game modes",
-		Value:  fmt.Sprintf("`%smad/fast/quiz/mild/slow <deck>` for 0/1/2/3/5 second answer windows.\n`%sgauntlet <deck>` in PM for a kanji time trial.\n`%sscramble [easy/normal/hard/insane]` for an English Word Scramble quiz.", CMD_PREFIX, CMD_PREFIX, CMD_PREFIX),
+		Value:  fmt.Sprintf("`%smad/fast/quiz/mild/slow <deck>` for 0/1/2/3/5 second answer windows.\n`%sgauntlet <deck>` in PM for a kanji time trial.\n`%sscramble [easy/normal/hard/insane]` for an English Word Scramble quiz. Append 'effects' at the end for goofy image effects.", CMD_PREFIX, CMD_PREFIX, CMD_PREFIX),
 		Inline: false,
 	})
 
@@ -386,7 +407,7 @@ func hasQuiz(quizChannel string) bool {
 }
 
 // Run kanji quiz loop in given channel
-func runQuiz(s *discordgo.Session, quizChannel string, quizname string, winLimitGiven string, waitTimeGiven int) {
+func runQuiz(s *discordgo.Session, quizChannel string, quizname string, winLimitGiven string, waitTimeGiven int, effects bool) {
 
 	// Mark the quiz as started
 	if err := startQuiz(s, quizChannel); err != nil {
@@ -469,7 +490,7 @@ outer:
 		scoreKeeper := make(map[string]int)
 
 		// Send out quiz question
-		imgSend(s, quizChannel, current.Question)
+		imgSend(s, quizChannel, current.Question, effects)
 
 		// Set timeout for no correct answers
 		timeoutChan := time.NewTimer(time.Duration(timeout) * time.Second)
@@ -644,7 +665,7 @@ func ranking(players map[string]int) (result []Player) {
 }
 
 // Run private gauntlet quiz
-func runGauntlet(s *discordgo.Session, m *discordgo.MessageCreate, quizname string) {
+func runGauntlet(s *discordgo.Session, m *discordgo.MessageCreate, quizname string, effects bool) {
 
 	quizChannel := m.ChannelID
 
@@ -737,7 +758,7 @@ outer:
 		}
 
 		// Send out quiz question
-		imgSend(s, m.ChannelID, current.Question)
+		imgSend(s, m.ChannelID, current.Question, effects)
 
 		select {
 		case <-quitChan:
@@ -797,7 +818,7 @@ outer:
 }
 
 // Scramble quiz
-func runScramble(s *discordgo.Session, quizChannel string, difficulty string) {
+func runScramble(s *discordgo.Session, quizChannel string, difficulty string, effects bool) {
 
 	// Mark the quiz as started
 	if err := startQuiz(s, quizChannel); err != nil {
@@ -896,7 +917,7 @@ outer:
 		scoreKeeper := make(map[string]int)
 
 		// Send out quiz question
-		imgSend(s, quizChannel, question)
+		imgSend(s, quizChannel, question, effects)
 
 		// Set timeout for no correct answers
 		timeoutChan := time.NewTimer(time.Duration(timeout) * time.Second)
