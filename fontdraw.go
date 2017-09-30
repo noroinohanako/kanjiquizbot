@@ -68,9 +68,6 @@ func loadRandomFont() *truetype.Font {
 
 func AddImageEffects(input *image.RGBA) *image.RGBA {
     rgba := input
-    //debug string
-    debugParams := "Effects debug: "
-
     // Add random transform
     rgba = transform.Rotate(rgba, 10 * (0.5 - rand.Float64()), nil)
     rgba = transform.ShearV(rgba, 5 * (0.5 - rand.Float64())) 
@@ -84,12 +81,9 @@ func AddImageEffects(input *image.RGBA) *image.RGBA {
     switch (rand.Int() % 3) {
     case 0:
         noisefn = noise.Binary
-        debugParams = debugParams + " Binary Noise"
     case 1:
         noisefn = noise.Uniform
-        debugParams = debugParams + " Uniform Noise"
     default: 
-        debugParams = debugParams + " Gaussian Noise"
     }
     noise := noise.Generate(width, height, &noise.Options{NoiseFn: noisefn, Monochrome: isMonochrome})
 
@@ -97,41 +91,30 @@ func AddImageEffects(input *image.RGBA) *image.RGBA {
     switch (rand.Int() % 6) {
     case 0:
         rgba = blend.Opacity(rgba, noise, 0.5)
-        debugParams = debugParams + " Opacity Blend"
     case 1:
         rgba = blend.Lighten(rgba, noise)
-        debugParams = debugParams + " Lighten Blend"
     case 2:
         rgba = blend.Subtract(rgba, noise)
-        debugParams = debugParams + " Subtraction Blend"
     case 3:
         rgba = blend.SoftLight(rgba, noise)
-        debugParams = debugParams + " SoftLight Blend"
     case 4:
         rgba = blend.ColorBurn(rgba, noise)
-        debugParams = debugParams + " ColorBurn Blend"
     case 5:
         rgba = blend.Overlay(rgba, noise)
-        debugParams = debugParams + " Overlay Blend"
     default:
         rgba = blend.Exclusion(rgba, noise)
-        debugParams = debugParams + " Exclusion Blend"
     }
 
     //Add effect
     switch (rand.Int() % 4) {
     case 0:
         rgba = blur.Gaussian(rgba, 2.0)
-        debugParams = debugParams + " Gaussian Blur Effect"
     case 1:
         rgba = effect.Emboss(rgba)
-        debugParams = debugParams + " Emboss Effect"
     case 2:
         rgba = blur.Box(rgba, 1.8)
-        debugParams = debugParams + " Box Blur Effect"
     default:
         rgba = effect.Sobel(rgba)
-        debugParams = debugParams + " Sobel Effect"
     }
 
     //apply mirrored challege mode effects
@@ -148,8 +131,6 @@ func AddImageEffects(input *image.RGBA) *image.RGBA {
         rgba = transform.Rotate(rgba,180,nil)
     default:
     }
-    //Debug String Print
-    fmt.Println(debugParams)
 
     return rgba
 }
